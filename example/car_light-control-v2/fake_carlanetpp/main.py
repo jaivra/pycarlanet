@@ -9,7 +9,8 @@ import zmq
 
 
 def read_json(type_request):
-    with open(f'example/car_light_control/fake_carlanetpp/api/{type_request}.json') as f:
+    #with open(f'example/car_light_control/fake_carlanetpp/api/{type_request}.json') as f:
+    with open(f'./api/{type_request}.json') as f:
         return json.load(f)
 
 

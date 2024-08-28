@@ -2,6 +2,7 @@
     "message_type": "INIT",
     "timestamp": 0,
     "run_id": "100",
+    "actor_types": ["Vehicle"],
     "moving_actors": [
       {
         "actor_id": "car_id",
