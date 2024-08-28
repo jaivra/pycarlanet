@@ -5,46 +5,125 @@ from carla.libcarla import World
 
 import inspect
 
+from pycarlanet.enum import CarlaMaplayers, SimulatorStatus
+from pycarlanet.listeners import WorldManager, ActorManager, AgentManager
+from pycarlanet import ActorType, CarlanetActor, CarlaClient, SimulationManager, SocketManager
 from pycarlanet.utils import InstanceExist
-from pycarlanet.listeners import WorldManager, ActorManager
-from pycarlanet.enum import SimulatorStatus, CarlaMaplayers
-from pycarlanet import CarlaClient, SocketManager
 
+
+#mock world manager
 class wManager(WorldManager):
-    def omnet_init_completed(self, message) -> (SimulatorStatus, World):
-        super().omnet_init_completed(message=message)
-        #print(f"{self.__class__.__name__} {inspect.currentframe().f_code.co_name}")
-        super().load_world("Town05_opt", [CarlaMaplayers.Buildings, CarlaMaplayers.Foliage])
-        return SimulatorStatus.RUNNING, self.world
+    timestamp = 4.0
+    def omnet_init_completed(self, message) -> SimulatorStatus:
+        #super().omnet_init_completed(message=message)
+        #super().load_world("Town05_opt", [CarlaMaplayers.Buildings, CarlaMaplayers.Foliage])
+        return SimulatorStatus.RUNNING
 
     def after_world_tick(self, timestamp) -> SimulatorStatus:
-        #print(f"{self.__class__.__name__} {inspect.currentframe().f_code.co_name}")
         if timestamp > 20:
            return SimulatorStatus.FINISHED_OK
         else:
-           return SimulatorStatus.RUNNING    
+            return SimulatorStatus.RUNNING
+
+    #mock for testing purpose
+    def get_elapsed_seconds(self): return self.timestamp
+    
+    #mock for testing purpose
+    def tick(self): self.timestamp += 0.1
+    
+    def generic_message(self, timestamp, message) -> (SimulatorStatus, dict):
+        return SimulatorStatus.RUNNING, {"message": "from carla"}
+
+
 
 class aManager(ActorManager):
-    @InstanceExist(CarlaClient)
-    def omnet_init_completed(self, message):
-        #print(f"{self.__class__.__name__} {inspect.currentframe().f_code.co_name}")
-        try:
-            spawnPoints = CarlaClient.instance.world.get_map().get_spawn_points()
-            if len(spawnPoints) < 1 : raise Exception("error, non sufficient spawn points")
-            for i in range(0,1):
-                blueprint_library = CarlaClient.instance.world.get_blueprint_library()
-                vehicle_bp = blueprint_library.filter("vehicle")[0]
-                vehicle = CarlaClient.instance.world.spawn_actor(vehicle_bp, spawnPoints[i])
-                vehicle.set_autopilot(True)
-                super().add_carla_actor_to_omnet(vehicle)
-        except Exception as e:
-            print(e)
+    p1 = 10.0
+    p2 = 12.0
+    v = 0.1
+    r = 0.1
 
+    def omnet_init_completed(self, message):
+        print(f"{self.__class__.__name__} {inspect.currentframe().f_code.co_name} -> start")
+        super().omnet_init_completed(message)
+        print(f"{self.__class__.__name__} {inspect.currentframe().f_code.co_name} -> end")
+        print(f"ActorType from aManager {ActorType.instance.get_available_types()}")
+
+    def create_actors_from_omnet(self, actors):
+        print("create_actors_from_omnet")
+        print(actors)
+    
+    def generic_message(self, timestamp, message) -> (SimulatorStatus, dict):
+        return SimulatorStatus.RUNNING, {"message": "from carla"}
+    
+    def _generate_carla_nodes_positions(self):
+      self.p1 += 1
+      self.p2 += 1
+      return [
+        {
+          "actor_id": "1",
+          "position": [
+            self.p1,
+            200.0,
+            0
+          ],
+          "velocity": [
+            self.v,
+            self.v,
+            self.v
+          ],
+          "rotation": [
+            self.r,
+            self.r,
+            self.r
+          ],
+          "type": "Vehicle"
+        },
+        {
+          "actor_id": "2",
+          "position": [
+            self.p2,
+            250.0,
+            0
+          ],
+          "velocity": [
+            self.v,
+            self.v,
+            self.v
+          ],
+          "rotation": [
+            self.r,
+            self.r,
+            self.r
+          ],
+          "type": "Vehicle"
+        }
+      ]
+    
+try: ActorType.destroy()
+except: ...
+
+try: SimulationManager.destroy()
+except: ...
+
+try: CarlaClient.destroy()
+except: ...
+
+try: SocketManager.destroy()
+except: ...
 
 #SimulationManager(carla_sh_path='/home/stefano/Documents/tesi/CARLA_0.9.15/CarlaUE4.sh')
 #SimulationManager.instance.reload_simulator()
 #time.sleep(5)
-CarlaClient(host='localhost', port=2000)
+ActorType()
+#CarlaClient(host='localhost', port=2000)
 
-SocketManager(listening_port=5555, worldManager=wManager(synchronousMode=True), actorManager=aManager(), log_messages=True)
+SocketManager(
+    listening_port=5555,
+    worldManager=wManager(synchronousMode=True, renderingMode=False),
+    actorManager=aManager(),
+    log_messages=True
+)
+#SocketManager(listening_port=5555, worldManager=wManager(synchronousMode=True, renderingMode=False), log_messages=True)
+
+
 SocketManager.instance.start_socket()
