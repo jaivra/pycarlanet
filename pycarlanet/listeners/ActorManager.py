@@ -86,7 +86,7 @@ class ActorManager(abc.ABC):
             position['position'] = [transform.location.x, transform.location.y, transform.location.z]
             position['rotation'] = [transform.rotation.pitch, transform.rotation.yaw, transform.rotation.roll]
             position['velocity'] = [velocity.x, velocity.y, velocity.z]
-            position['actor_type'] = actor.actor_type.name
+            position['actor_type'] = actor.actor_type
             nodes_positions.append(position)
         return nodes_positions
 
