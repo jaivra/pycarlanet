@@ -53,6 +53,7 @@ class SocketManager:
             while not isinstance(self._message_handler, FinishedMessageHandlerState):
                 msg = self._receive_data_from_omnet()
                 answer = self._message_handler.handle_message(msg)
+                #TODO: check if answer is null to allow no backmessage?
                 self._send_data_to_omnet(answer)
             self._worldManager.simulation_finished(self._message_handler.simulator_status_code)
         except Exception as e:

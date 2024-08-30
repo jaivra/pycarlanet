@@ -1,0 +1,10 @@
+{
+  "vehicles":[
+    {
+      "actor_type": "car",
+      "role_name": "hero",
+      "speed_limit": "auto",
+      "model": "vehicle.tesla.model3"
+    }
+  ]
+}

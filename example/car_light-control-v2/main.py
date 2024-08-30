@@ -14,7 +14,10 @@ from pycarlanet import CarlaClient, SocketManager, ActorType, CarlanetActor
 from pycarlanet import SimulationManager
 
 import sys
+import signal
 from functools import partial
+
+import json
 
 # get light control enum from int value
 def _str_to_light_control_enum(light_value):
@@ -62,6 +65,7 @@ class wManager(WorldManager):
         return SimulatorStatus.RUNNING
 
     def after_world_tick(self, timestamp) -> SimulatorStatus:
+        return SimulatorStatus.RUNNING
         if timestamp > 20:
            return SimulatorStatus.FINISHED_OK
         else:
@@ -79,39 +83,61 @@ class wManager(WorldManager):
 
 
 class aManager(ActorManager):
-
     def omnet_init_completed(self, message):
         #print(f"{self.__class__.__name__} {inspect.currentframe().f_code.co_name} -> start")
         super().omnet_init_completed(message)
         #print(f"{self.__class__.__name__} {inspect.currentframe().f_code.co_name} -> end")
         #print(f"ActorType from aManager {ActorType.instance.get_available_types()}")
+        try:
+            with open(f"./configurations/{message['user_defined']['config_name']}.json", 'r') as file:
+                data = json.load(file)
+                for actor in data["vehicles"]:
+                    print(actor)
+                    if actor['actor_type'] == 'car':
+                        blueprint: ActorBlueprint = random.choice(CarlaClient.instance.world.get_blueprint_library().filter(actor['model']))
+                        spawn_points = CarlaClient.instance.world.get_map().get_spawn_points()
+                        spawn_point = random.choice(spawn_points)
+                        response = CarlaClient.instance.client.apply_batch_sync([carla.command.SpawnActor(blueprint, spawn_point)])[0]
+                        carla_actor: carla.Vehicle = CarlaClient.instance.world.get_actor(response.actor_id)
+                        carla_actor.set_simulate_physics(True)
+                        carla_actor.set_autopilot(False)
+                        self.add_carla_actor_to_omnet(carla_actor, ActorType.instance.get_available_types()[0])
+        except Exception as error:
+            print(error)
+        
+        
 
-    @InstanceExist(CarlaClient)
+
+    #@InstanceExist(CarlaClient)
     def create_actors_from_omnet(self, actors):
-        for actor in actors:
-            if actor['actor_type'] == 'car':
-                blueprint: ActorBlueprint = random.choice(CarlaClient.instance.world.get_blueprint_library().filter("vehicle.tesla.model3"))
-                spawn_points = CarlaClient.instance.world.get_map().get_spawn_points()
-                spawn_point = random.choice(spawn_points)
-                response = CarlaClient.instance.client.apply_batch_sync([carla.command.SpawnActor(blueprint, spawn_point)])[0]
-                carla_actor: carla.Vehicle = CarlaClient.instance.world.get_actor(response.actor_id)
-                carla_actor.set_simulate_physics(True)
-                carla_actor.set_autopilot(False)
-                carlanet_actor = CarlanetActor(carla_actor, ActorType.instance.get_available_types()[0])
-                self._carlanet_actors[actor['actor_id']] = carlanet_actor
-            else:
-                raise RuntimeError(f"I don\'t know this type {actor['actor_type']}")
+        return
+        # for actor in actors:
+        #     if actor['actor_type'] == 'car':
+        #         blueprint: ActorBlueprint = random.choice(CarlaClient.instance.world.get_blueprint_library().filter("vehicle.tesla.model3"))
+        #         spawn_points = CarlaClient.instance.world.get_map().get_spawn_points()
+        #         spawn_point = random.choice(spawn_points)
+        #         response = CarlaClient.instance.client.apply_batch_sync([carla.command.SpawnActor(blueprint, spawn_point)])[0]
+        #         carla_actor: carla.Vehicle = CarlaClient.instance.world.get_actor(response.actor_id)
+        #         carla_actor.set_simulate_physics(True)
+        #         carla_actor.set_autopilot(True)
+        #         if actor['actor_id'] == '':
+        #             self.add_carla_actor_to_omnet(carla_actor, ActorType.instance.get_available_types()[0])
+        #         else:
+        #             carlanet_actor = CarlanetActor(carla_actor, ActorType.instance.get_available_types()[0])
+        #             self._carlanet_actors[actor['actor_id']] = carlanet_actor
+        #     else:
+        #         raise RuntimeError(f"I don\'t know this type {actor['actor_type']}")
     
     def generic_message(self, timestamp, message) -> (SimulatorStatus, dict):
-        #if not 'msg_type' in message: return SimulatorStatus.RUNNING, {'message': 'from carla'}
+        if not 'msg_type' in message: return SimulatorStatus.RUNNING, {'message': 'from carla'}
         if message['msg_type'] == 'LIGHT_COMMAND':
-            next_light_state = _str_to_light_control_enum(message['light_next_state'])
+            next_light_state = _str_to_light_control_enum(int(message['light_next_state']))
             key = next(iter(self._carlanet_actors))
             car: carla.Actor = self._carlanet_actors[key].carla_actor
             car.set_light_state(next_light_state)
             msg_to_send = {
                 'msg_type': 'LIGHT_UPDATE',
-                'light_curr_state': _light_control_enum_to_str(car.get_light_state())
+                'light_curr_state': f'{_light_control_enum_to_str(car.get_light_state())}'
             }
             return SimulatorStatus.RUNNING, msg_to_send
         else:
@@ -119,6 +145,7 @@ class aManager(ActorManager):
     
     @InstanceExist(CarlaClient)
     def before_world_tick(self, timestamp):
+        if len(self._carlanet_actors) == 0: return
         # Get the spectator from the world
         spectator = CarlaClient.instance.world.get_spectator()
         # Get the the vehicle
@@ -129,20 +156,19 @@ class aManager(ActorManager):
             car.get_transform().location + carla.Location(z=20),
             carla.Rotation(pitch=-90))
         )
-    
 
 class agentManager(AgentManager):
     def generic_message(self, timestamp, message) -> (SimulatorStatus, dict):
         if not 'msg_type' in message: return SimulatorStatus.RUNNING, {'message': 'from carla'}
         if message['msg_type'] == 'LIGHT_UPDATE':
-            curr_light_state = _str_to_light_control_enum(message['light_curr_state'])
+            curr_light_state = _str_to_light_control_enum(int(message['light_curr_state']))
             next_light_state = self.calc_next_light_state(curr_light_state)
             #print("LIGHT CURR STATE: ", curr_light_state, "LIGHT NEXT STATE: ", next_light_state, '\n')
             #print("LIGHT CURR STATE: ", _light_control_enum_to_str(curr_light_state), "LIGHT NEXT STATE: ", _light_control_enum_to_str(next_light_state), '\n')
 
             msg_to_send = {
                 'msg_type': 'LIGHT_COMMAND',
-                'light_next_state': _light_control_enum_to_str(next_light_state)
+                'light_next_state': f'{_light_control_enum_to_str(next_light_state)}'
             }
 
             return SimulatorStatus.RUNNING, msg_to_send
@@ -176,6 +202,13 @@ except: ...
 SimulationManager(carla_sh_path='/home/stefano/Documents/tesi/CARLA_0.9.15/CarlaUE4.sh')
 SimulationManager.instance.reload_simulator()
 time.sleep(5)
+
+def signal_handler(sig, frame):
+    print('\nYou pressed Ctrl+C!')
+    SimulationManager.instance.close_simulator()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 #redirect print on logfile for debug purposes
 class TeeOutput:
