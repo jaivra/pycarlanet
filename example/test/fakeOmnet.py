@@ -36,12 +36,31 @@ json_data = json.loads(message.decode("utf-8"))
 print(f"received {json_data}\n")
 timestamp = json_data["initial_timestamp"] + simulation_step
 
-while True:
+# for i in range(0,10):
+#     msg = {
+#             "message_type": "SIMULATION_STEP",
+#             "carla_timestep": 0.05,
+#             "timestamp": timestamp  
+#         }
+#     socket.send(json.dumps(msg).encode('utf-8'))
+#     print(f"send {msg}\n")
+#     message = socket.recv()
+#     json_data = json.loads(message.decode("utf-8"))
+#     print(f"received {json_data}\n")
+    
+#     timestamp += simulation_step
+
+#     time.sleep(0.2)
+
+for i in range(0,10):
     msg = {
-            "message_type": "SIMULATION_STEP",
-            "carla_timestep": 0.05,
-            "timestamp": timestamp  
+        "message_type": "WORLD_GENERIC_MESSAGE",
+        "simulation_status": 0,
+        "user_defined": {
+            "msg_type": "LIGHT_UPDATE",
+            "light_curr_state": "1"
         }
+    }
     socket.send(json.dumps(msg).encode('utf-8'))
     print(f"send {msg}\n")
     message = socket.recv()

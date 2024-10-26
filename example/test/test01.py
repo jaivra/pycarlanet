@@ -1,3 +1,0 @@
-import pycarlanet
-
-print(pycarlanet)

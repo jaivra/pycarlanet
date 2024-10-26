@@ -1,6 +1,7 @@
 import abc
-from typing import Dict
+from typing import Any, Dict
 import carla
+from collections import OrderedDict
 
 from pycarlanet.enum import SimulatorStatus
 from pycarlanet import CarlanetActor, ActorType
@@ -8,7 +9,7 @@ from pycarlanet.utils import InstanceExist
 
 
 class ActorManager(abc.ABC):
-    _carlanet_actors: Dict[str, CarlanetActor] = dict()
+    _carlanet_actors: Dict[str, Any] = OrderedDict()
 
     # INIT PHASE
     def omnet_init_completed(self, message):
@@ -60,13 +61,15 @@ class ActorManager(abc.ABC):
         """
         ...
     
-    def add_carla_actor_to_omnet(self, actor:carla.Actor, actor_type: str):
+    def add_carla_actor_to_omnet(self, actor:carla.Actor, actor_type: str, cls=CarlanetActor, **kwargs):
         """
         Called to add a carla actor to the list and communicate in next step to omnet
         :param actor:carla.Actor
         :param actor_type: ActorType
+        :param cls: The class to be instantiated
+        :param kwargs: Additional arguments to pass to the cls constructor
         """
-        self._carlanet_actors[f'{actor.id}'] = CarlanetActor(actor, actor_type) 
+        self._carlanet_actors[f'{actor.id}'] = cls(actor, actor_type, **kwargs)
 
     def remove_actor(self, actor_id: str):
         """

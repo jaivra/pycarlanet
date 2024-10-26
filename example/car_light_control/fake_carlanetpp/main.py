@@ -9,7 +9,7 @@ import zmq
 
 
 def read_json(type_request):
-    with open(f'example/car_light_control/fake_carlanetpp/api/{type_request}.json') as f:
+    with open(f'./api/{type_request}.json') as f:
         return json.load(f)
 
 
@@ -37,6 +37,7 @@ if __name__ == '__main__':
     print("connected")
 
     limit_sim_time = 15
+    #init
     req = read_json('init')
     send_info(socket, req)
 
@@ -45,6 +46,8 @@ if __name__ == '__main__':
 
     light_curr_state = 0
     light_next_state = 0
+
+
     while True:
         req = read_json('light_update')
         req['user_defined']['light_curr_state'] = light_curr_state

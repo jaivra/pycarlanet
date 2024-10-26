@@ -89,6 +89,7 @@ class aManager(ActorManager):
         #print(f"{self.__class__.__name__} {inspect.currentframe().f_code.co_name} -> end")
         #print(f"ActorType from aManager {ActorType.instance.get_available_types()}")
         try:
+            raise Exception("test")
             with open(f"./configurations/{message['user_defined']['config_name']}.json", 'r') as file:
                 data = json.load(file)
                 for actor in data["vehicles"]:
@@ -108,25 +109,27 @@ class aManager(ActorManager):
         
 
 
-    #@InstanceExist(CarlaClient)
+    @InstanceExist(CarlaClient)
     def create_actors_from_omnet(self, actors):
-        return
-        # for actor in actors:
-        #     if actor['actor_type'] == 'car':
-        #         blueprint: ActorBlueprint = random.choice(CarlaClient.instance.world.get_blueprint_library().filter("vehicle.tesla.model3"))
-        #         spawn_points = CarlaClient.instance.world.get_map().get_spawn_points()
-        #         spawn_point = random.choice(spawn_points)
-        #         response = CarlaClient.instance.client.apply_batch_sync([carla.command.SpawnActor(blueprint, spawn_point)])[0]
-        #         carla_actor: carla.Vehicle = CarlaClient.instance.world.get_actor(response.actor_id)
-        #         carla_actor.set_simulate_physics(True)
-        #         carla_actor.set_autopilot(True)
-        #         if actor['actor_id'] == '':
-        #             self.add_carla_actor_to_omnet(carla_actor, ActorType.instance.get_available_types()[0])
-        #         else:
-        #             carlanet_actor = CarlanetActor(carla_actor, ActorType.instance.get_available_types()[0])
-        #             self._carlanet_actors[actor['actor_id']] = carlanet_actor
-        #     else:
-        #         raise RuntimeError(f"I don\'t know this type {actor['actor_type']}")
+        print("create_actors_from_omnet")
+        print(actors)
+        
+        for actor in actors:
+            if actor['actor_type'] == 'car':
+                blueprint: ActorBlueprint = random.choice(CarlaClient.instance.world.get_blueprint_library().filter("vehicle.tesla.model3"))
+                spawn_points = CarlaClient.instance.world.get_map().get_spawn_points()
+                spawn_point = random.choice(spawn_points)
+                response = CarlaClient.instance.client.apply_batch_sync([carla.command.SpawnActor(blueprint, spawn_point)])[0]
+                carla_actor: carla.Vehicle = CarlaClient.instance.world.get_actor(response.actor_id)
+                carla_actor.set_simulate_physics(True)
+                carla_actor.set_autopilot(True)
+                if actor['actor_id'] == '':
+                    self.add_carla_actor_to_omnet(carla_actor, ActorType.instance.get_available_types()[0])
+                else:
+                    carlanet_actor = CarlanetActor(carla_actor, ActorType.instance.get_available_types()[0])
+                    self._carlanet_actors[actor['actor_id']] = carlanet_actor
+            else:
+                raise RuntimeError(f"I don\'t know this type {actor['actor_type']}")
     
     def generic_message(self, timestamp, message) -> (SimulatorStatus, dict):
         if not 'msg_type' in message: return SimulatorStatus.RUNNING, {'message': 'from carla'}
@@ -224,7 +227,7 @@ class TeeOutput:
         self.file.flush()
         self.stdout.flush()
 # Redirect stdout
-sys.stdout = TeeOutput('logfile.txt')
+sys.stdout = TeeOutput('logfile_2.txt')
 # Use a partial function to preserve print's other arguments
 print = partial(print, flush=True)
 

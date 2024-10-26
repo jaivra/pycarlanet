@@ -1,5 +1,5 @@
 {
-    "message_type": "GENERIC_MESSAGE",
+    "message_type": "WORLD_GENERIC_MESSAGE",
     "simulation_status": 0,
     "user_defined": {
         "msg_type": "LIGHT_UPDATE",

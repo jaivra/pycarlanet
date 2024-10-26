@@ -156,7 +156,7 @@ class RunningMessageHandlerState(MessageHandlerState):
         res['simulation_status'] = sim_status.value
         res['user_defined'] = user_defined_response
 
-        if sim_status != SimulatorStatus.RUNNING: self._manager.set_message_handler_state(FinishedMessageHandlerState, sim_status)
+        if sim_status != SimulatorStatus.RUNNING: SocketManager.instance.set_message_handler_state(FinishedMessageHandlerState, sim_status)
         
         return res
     
@@ -170,7 +170,7 @@ class RunningMessageHandlerState(MessageHandlerState):
         res['simulation_status'] = sim_status.value
         res['user_defined'] = user_defined_response
 
-        if sim_status != SimulatorStatus.RUNNING: self._manager.set_message_handler_state(FinishedMessageHandlerState, sim_status)
+        if sim_status != SimulatorStatus.RUNNING: SocketManager.instance.set_message_handler_state(FinishedMessageHandlerState, sim_status)
         
         return res
 
@@ -184,7 +184,7 @@ class RunningMessageHandlerState(MessageHandlerState):
         res['simulation_status'] = sim_status.value
         res['user_defined'] = user_defined_response
 
-        if sim_status != SimulatorStatus.RUNNING: self._manager.set_message_handler_state(FinishedMessageHandlerState, sim_status)
+        if sim_status != SimulatorStatus.RUNNING: SocketManager.instance.set_message_handler_state(FinishedMessageHandlerState, sim_status)
         
         return res
 
