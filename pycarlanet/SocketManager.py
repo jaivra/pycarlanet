@@ -38,6 +38,8 @@ class SocketManager:
         self._listening_port = listening_port
         self._worldManager = worldManager
 
+        self.timestamp = 0
+
         if actorManager is not None: self._actorManager = actorManager
         if agentManager is not None: self._agentManager = agentManager
 
@@ -74,7 +76,8 @@ class SocketManager:
     def _receive_data_from_omnet(self):
         message = self.socket.recv()
         json_data = json.loads(message.decode("utf-8"))
-        self.timestamp = json_data['timestamp']
+        if 'timestamp' in json_data:
+            self.timestamp = json_data['timestamp']
         if self._log_messages: print(f'Received msg: {json_data}\n')
         return json_data
 
@@ -130,15 +133,15 @@ class RunningMessageHandlerState(MessageHandlerState):
     def SIMULATION_STEP(self, message):
         res = dict()
         
-        SocketManager.instance._worldManager.before_world_tick(message['timestamp'])
-        SocketManager.instance._actorManager.before_world_tick(message['timestamp'])
-        SocketManager.instance._agentManager.before_world_tick(message['timestamp'])
+        SocketManager.instance._worldManager.before_world_tick(SocketManager.instance.timestamp)
+        SocketManager.instance._actorManager.before_world_tick(SocketManager.instance.timestamp)
+        SocketManager.instance._agentManager.before_world_tick(SocketManager.instance.timestamp)
 
         SocketManager.instance._worldManager.tick()
 
-        sim_status = SocketManager.instance._worldManager.after_world_tick(message['timestamp'])
-        SocketManager.instance._actorManager.after_world_tick(message['timestamp'])
-        SocketManager.instance._agentManager.after_world_tick(message['timestamp'])
+        sim_status = SocketManager.instance._worldManager.after_world_tick(SocketManager.instance.timestamp)
+        SocketManager.instance._actorManager.after_world_tick(SocketManager.instance.timestamp)
+        SocketManager.instance._agentManager.after_world_tick(SocketManager.instance.timestamp)
         
 
         res['message_type'] = 'UPDATED_POSITIONS'
@@ -149,8 +152,7 @@ class RunningMessageHandlerState(MessageHandlerState):
 
     @InstanceExist(SocketManager)
     def WORLD_GENERIC_MESSAGE(self, message):
-
-        sim_status, user_defined_response = SocketManager.instance._worldManager.generic_message(message['timestamp'], message['user_defined'])
+        sim_status, user_defined_response = SocketManager.instance._worldManager.generic_message(SocketManager.instance.timestamp, message['user_defined'])
 
         res = dict()
         res['message_type'] = 'WORLD_GENERIC_RESPONSE'
@@ -164,7 +166,7 @@ class RunningMessageHandlerState(MessageHandlerState):
     @InstanceExist(SocketManager)
     def ACTOR_GENERIC_MESSAGE(self, message):
 
-        sim_status, user_defined_response = SocketManager.instance._actorManager.generic_message(message['timestamp'], message['user_defined'])
+        sim_status, user_defined_response = SocketManager.instance._actorManager.generic_message(SocketManager.instance.timestamp, message['user_defined'])
 
         res = dict()
         res['message_type'] = 'ACTOR_GENERIC_RESPONSE'
@@ -178,7 +180,7 @@ class RunningMessageHandlerState(MessageHandlerState):
     @InstanceExist(SocketManager)
     def AGENT_GENERIC_MESSAGE(self, message):
 
-        sim_status, user_defined_response = SocketManager.instance._agentManager.generic_message(message['timestamp'], message['user_defined'])
+        sim_status, user_defined_response = SocketManager.instance._agentManager.generic_message(SocketManager.instance.timestamp, message['user_defined'])
 
         res = dict()
         res['message_type'] = 'AGENT_GENERIC_RESPONSE'
